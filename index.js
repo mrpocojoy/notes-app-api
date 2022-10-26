@@ -19,11 +19,31 @@ app.listen(PORT, () => {
  *  HELPER MIDDLEWARES
 *****************************************/
 
+// Search for static frontend build (./build)
+app.use(express.static('build'))
+
+// Convert requests' body information to JSON
 app.use(express.json())
-app.use(morgan(':method :url :status :res[content-length] - :response-time ms :content \n'))
+
+// Adding a custom formatted logs to server console
+app.use(morgan(':method :url :status :res[content-length] - :response-time ms :content'))
 morgan.token('content', (request) => JSON.stringify(request.body))
-app.use(cors())
 app.use(requestLogger)
+
+// Enabling CROSS-ORIGIN requests
+const corsOptions = {
+  origin: '*',
+  optionsSuccessStatus: 200
+  // origin: function (origin, callback) {
+  //   // db.loadOrigins is an example call to load a list of origins from a backing database
+  //   db.loadOrigins(function (error, origins) {
+  //     callback(error, origins)
+  //   })
+  // }
+}
+app.use(cors(corsOptions))
+
+
 
 /*****************************************
  *  HARDCODED DATABASE
