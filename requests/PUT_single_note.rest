@@ -1,0 +1,9 @@
+PUT http://localhost:3001/api/notes/12
+Content-Type: application/json
+
+{
+  "userId": 3,
+  "title": "Hello World!",
+  "body": "Lorem ipsum dolor sit amet consectetur, adipisicing elit. Quidem, fugit facilis blanditiis id dicta optio molestias reiciendis vel minima! Perspiciatis dignissimos natus temporibus at laboriosam dolores itaque ipsa neque velit.",
+  "important": true
+}
