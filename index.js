@@ -1,13 +1,22 @@
 require('dotenv').config()
-
-const express = require('express')
-const morgan = require('morgan')
-const cors = require('cors')
-
-const requestLogger = require('./loggerMiddleware')
-const app = express()
 const PORT = process.env.PORT
 
+const express = require('express')
+const app = express()
+const cors = require('cors')
+
+const Sentry = require('@sentry/node')
+const Tracing = require('@sentry/tracing')
+
+const consoleLogger = require('./middleware/console-logger')
+const notFound = require('./middleware/not-found')
+const handleErrors = require('./middleware/handle-errors')
+
+
+
+/*****************************************
+ *  PORT LISTENER
+*****************************************/
 app.listen(PORT, () => {
   console.clear()
   console.log('\n************************************')
@@ -18,9 +27,29 @@ app.listen(PORT, () => {
 
 
 /*****************************************
- *  DB MODELS
+ *  MONGO DB
 *****************************************/
-const Note = require('./models/note')
+const connectDB = require('./mongo.js')
+const Note = require('./models/Note')
+
+connectDB()
+
+
+
+/*****************************************
+ *  SENTRY INIT+CONFIG
+*****************************************/
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  integrations: [
+    new Sentry.Integrations.Http({ tracing: true }),
+    new Tracing.Integrations.Express({ app }),
+  ],
+  tracesSampleRate: 1.0,
+})
+
+app.use(Sentry.Handlers.requestHandler())
+app.use(Sentry.Handlers.tracingHandler())
 
 
 
@@ -31,13 +60,14 @@ const Note = require('./models/note')
 // Search for static frontend build (./build)
 app.use(express.static('build'))
 
+// Serve static content in /images folder to API
+app.use('/images', express.static('images'))
+
 // Convert requests' body information to JSON
 app.use(express.json())
 
 // Adding a custom formatted logs to server console
-app.use(morgan(':method :url :status :res[content-length] - :response-time ms :content'))
-morgan.token('content', (request) => JSON.stringify(request.body))
-app.use(requestLogger)
+app.use(consoleLogger)
 
 // Enabling CROSS-ORIGIN requests
 const corsOptions = {
@@ -55,48 +85,42 @@ app.use(cors(corsOptions))
 
 
 /*****************************************
- *  GET REQUESTS
+ *  ROUTE CONTROLLERS
 *****************************************/
 
-app.get('/', (request, response) => {
-  response.send(`Welcome to backend!`)
-})
 
+/***** GET  *****/
 
+// Obtain all notes from DB
 app.get('/api/notes', (request, response, next) => {
   Note
     .find({})
-    .then(result => response.json(result))
+    .then(notes => response.json(notes))
     .catch(error => next(error))
 })
 
-
+// Obtain specific note from DB, based on noteID
 app.get('/api/notes/:id', (request, response, next) => {
   Note
     .findById(request.params.id)
-    .then(result => {
-      if (!result)
-        return next()
-
-      response.json(result)
+    .then(note => {
+      return note
+        ? response.json(note)
+        : next('Unknown note ID')
     })
     .catch(error => next(error))
 })
 
 
 
-/*****************************************
- *  POST REQUESTS
-*****************************************/
+/***** POST  *****/
 
+// Add new note to DB, based on request.body
 app.post('/api/notes', (request, response, next) => {
   const reqBody = request.body
 
-  if (!reqBody || !reqBody.body)
-    throw 'Missing note content'
-
   const newNote = new Note({
-    userId: reqBody.userId || Math.floor(Math.random() * 100),
+    userId: reqBody.userId,
     title: reqBody.title || reqBody.body,
     body: reqBody.body,
     important: reqBody.important || false
@@ -104,40 +128,38 @@ app.post('/api/notes', (request, response, next) => {
 
   newNote
     .save()
-    .then(result => response.status(201).json(result))
+    .then(savedNote => response.status(201).json(savedNote))
     .catch(error => next(error))
 })
 
 
-/*****************************************
- *  PUT REQUESTS
-*****************************************/
 
+/***** PUT  *****/
+
+// Edit existing note in DB, based on noteID
 app.put('/api/notes/:id', (request, response, next) => {
   Note
     .findByIdAndUpdate(request.params.id, { ...request.body }, { new: true })
-    .then(result => {
-      if (!result)
-        return next()
-
-      response.json(result)
+    .then(updatedNote => {
+      return updatedNote
+        ? response.json(updatedNote)
+        : next('Unknown note ID')
     })
     .catch(error => next(error))
 })
 
 
-/*****************************************
- *  DELETE REQUESTS
-*****************************************/
 
+/***** DELETE  *****/
+
+// Delete existing note in DB, based on noteID
 app.delete('/api/notes/:id', (request, response, next) => {
   Note
     .findByIdAndDelete(request.params.id)
-    .then(result => {
-      if (!result)
-        next()
-
-      response.status(204).json(result)
+    .then(deletedNote => {
+      return updatedNote
+        ? response.status(204).json(deletedNote)
+        : next('Unknown note ID')
     })
     .catch(error => next(error))
 })
@@ -145,23 +167,15 @@ app.delete('/api/notes/:id', (request, response, next) => {
 
 
 /*****************************************
- *  HTTP 4XX HANDLERS
+ *  ERROR HANDLERS
 ****************************************/
 
 // 404 - UNKNOWN ENDPOINT
-app.use((request, response) => {
-  response.status(404).send({ error: 'HTTP404 - Unknown Endpoint.' })
-})
+app.use(notFound)
 
+// SENTRY REPORTING
+app.use(Sentry.Handlers.errorHandler())
 
-// 400 - BAD CLIENT REQUEST
-app.use((error, request, response, next) => {
-  console.error("Error message", error.message)
+// OTHER ERRORS
+app.use(handleErrors)
 
-  if (error.name === 'CastError')
-    return response.status(400).send({ error: 'Wrong ID Format.' })
-
-  return response.status(400).send({ error })
-})
-
-// mongoose.connection.close()
