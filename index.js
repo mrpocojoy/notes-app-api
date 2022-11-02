@@ -1,11 +1,12 @@
+require('dotenv').config()
+
 const express = require('express')
 const morgan = require('morgan')
 const cors = require('cors')
 
 const requestLogger = require('./loggerMiddleware')
-
 const app = express()
-const PORT = process.env.PORT || 3001
+const PORT = process.env.PORT
 
 app.listen(PORT, () => {
   console.clear()
@@ -13,6 +14,14 @@ app.listen(PORT, () => {
   console.log(`RELOAD. Server running on port ${PORT}`)
   console.log('************************************\n')
 })
+
+
+
+/*****************************************
+ *  DB MODELS
+*****************************************/
+const Note = require('./models/note')
+
 
 
 /*****************************************
@@ -46,18 +55,6 @@ app.use(cors(corsOptions))
 
 
 /*****************************************
- *  HARDCODED DATABASE
-*****************************************/
-
-let { notes } = require('./db.json')
-
-const generateId = () => {
-  return (1 + (notes.length ? Math.max(...notes.map(({ id }) => id)) : 0))
-}
-
-
-
-/*****************************************
  *  GET REQUESTS
 *****************************************/
 
@@ -65,18 +62,25 @@ app.get('/', (request, response) => {
   response.send(`Welcome to backend!`)
 })
 
-app.get('/api/notes', (request, response) => {
-  response.json(notes)
+
+app.get('/api/notes', (request, response, next) => {
+  Note
+    .find({})
+    .then(result => response.json(result))
+    .catch(error => next(error))
 })
 
-app.get('/api/notes/:id', (request, response) => {
-  const reqId = Number(request.params.id)
-  const note = notes.find(({ id }) => id === reqId)
 
-  if (!note)
-    response.status(404).send(`Note id=${reqId} not found`)
+app.get('/api/notes/:id', (request, response, next) => {
+  Note
+    .findById(request.params.id)
+    .then(result => {
+      if (!result)
+        return next()
 
-  response.json(note)
+      response.json(result)
+    })
+    .catch(error => next(error))
 })
 
 
@@ -85,24 +89,23 @@ app.get('/api/notes/:id', (request, response) => {
  *  POST REQUESTS
 *****************************************/
 
-app.post('/api/notes', (request, response) => {
+app.post('/api/notes', (request, response, next) => {
   const reqBody = request.body
 
   if (!reqBody || !reqBody.body)
-    return response.status(400).json({
-      error: 'Missing note information'
-    })
+    throw 'Missing note content'
 
-  const newNote = {
-    id: generateId(),
-    userId: Math.floor(Math.random() * 100),
+  const newNote = new Note({
+    userId: reqBody.userId || Math.floor(Math.random() * 100),
     title: reqBody.title || reqBody.body,
     body: reqBody.body,
     important: reqBody.important || false
-  }
-  notes = notes.concat(newNote)
+  })
 
-  response.status(201).json(newNote)
+  newNote
+    .save()
+    .then(result => response.status(201).json(result))
+    .catch(error => next(error))
 })
 
 
@@ -110,30 +113,16 @@ app.post('/api/notes', (request, response) => {
  *  PUT REQUESTS
 *****************************************/
 
-app.put('/api/notes/:id', (request, response) => {
-  const reqBody = request.body
-  const reqId = Number(request.params.id)
+app.put('/api/notes/:id', (request, response, next) => {
+  Note
+    .findByIdAndUpdate(request.params.id, { ...request.body }, { new: true })
+    .then(result => {
+      if (!result)
+        return next()
 
-  if (!reqBody || !reqBody.body || !reqBody.userId)
-    return response.status(400).json({
-      error: 'Missing note information'
+      response.json(result)
     })
-
-  if (!notes.filter(({ id }) => id === reqId))
-    return response.status(400).json({
-      error: 'Note to update not found'
-    })
-
-  const updatedNote = {
-    id: reqId,
-    userId: reqBody.userId,
-    title: reqBody.title || reqBody.body,
-    body: reqBody.body,
-    important: reqBody.important || false
-  }
-  notes = notes.map((note) => note.id !== reqId ? note : updatedNote)
-
-  response.json(updatedNote)
+    .catch(error => next(error))
 })
 
 
@@ -141,15 +130,38 @@ app.put('/api/notes/:id', (request, response) => {
  *  DELETE REQUESTS
 *****************************************/
 
-app.delete('/api/notes/:id', (request, response) => {
-  const reqId = Number(request.params.id)
-  notes = notes.filter(({ id }) => id !== reqId)
+app.delete('/api/notes/:id', (request, response, next) => {
+  Note
+    .findByIdAndDelete(request.params.id)
+    .then(result => {
+      if (!result)
+        next()
 
-  response.status(204).end()
+      response.status(204).json(result)
+    })
+    .catch(error => next(error))
 })
 
 
-/*****************************************
- *  DEFAULT ROUTES
-*****************************************/
 
+/*****************************************
+ *  HTTP 4XX HANDLERS
+****************************************/
+
+// 404 - UNKNOWN ENDPOINT
+app.use((request, response) => {
+  response.status(404).send({ error: 'HTTP404 - Unknown Endpoint.' })
+})
+
+
+// 400 - BAD CLIENT REQUEST
+app.use((error, request, response, next) => {
+  console.error("Error message", error.message)
+
+  if (error.name === 'CastError')
+    return response.status(400).send({ error: 'Wrong ID Format.' })
+
+  return response.status(400).send({ error })
+})
+
+// mongoose.connection.close()

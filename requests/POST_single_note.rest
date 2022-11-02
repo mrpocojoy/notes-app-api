@@ -1,7 +1,30 @@
+GET http://localhost:3001/api/notes
+
+###
+
+
 POST http://localhost:3001/api/notes
 Content-Type: application/json
 
 {
   "title": "Hello World!",
   "body": "Lorem ipsum dolor sit amet consectetur, adipisicing elit. Quidem, fugit facilis blanditiis id dicta optio molestias reiciendis vel minima! Perspiciatis dignissimos natus temporibus at laboriosam dolores itaque ipsa neque velit."
+}
+
+
+###
+
+
+POST http://localhost:3001/api/notes
+Content-Type: application/json
+
+
+###
+
+
+POST http://localhost:3001/api/notes
+Content-Type: application/json
+
+{
+  "title": "Hello World!"
 }
