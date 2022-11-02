@@ -30,7 +30,7 @@ app.listen(PORT, () => {
  *  MONGO DB
 *****************************************/
 const connectDB = require('./mongo.js')
-const Note = require('./models/Note')
+const Note = require('./models/Note.js')
 
 connectDB()
 
