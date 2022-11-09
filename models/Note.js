@@ -2,15 +2,16 @@ const mongoose = require('mongoose')
 
 // Notes Schema
 const noteSchema = new mongoose.Schema({
-  userId: {
-    type: Number,
-    required: true
-  },
-  title: String,
-  body: {
+  text: {
     type: String,
     minlength: 5,
-    required: true
+    required: true,
+    trim: true
+  },
+  date: {
+    type: Date,
+    required: true,
+    immutable: true
   },
   important: Boolean,
 })

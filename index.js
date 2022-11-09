@@ -99,6 +99,7 @@ app.get('/api/notes', (request, response, next) => {
     .catch(error => next(error))
 })
 
+
 // Obtain specific note from DB, based on noteID
 app.get('/api/notes/:id', (request, response, next) => {
   Note
@@ -120,9 +121,8 @@ app.post('/api/notes', (request, response, next) => {
   const reqBody = request.body
 
   const newNote = new Note({
-    userId: reqBody.userId,
-    title: reqBody.title || reqBody.body,
-    body: reqBody.body,
+    text: reqBody.text,
+    date: new Date().toISOString(),
     important: reqBody.important || false
   })
 
@@ -157,7 +157,7 @@ app.delete('/api/notes/:id', (request, response, next) => {
   Note
     .findByIdAndDelete(request.params.id)
     .then(deletedNote => {
-      return updatedNote
+      return deletedNote
         ? response.status(204).json(deletedNote)
         : next('Unknown note ID')
     })

@@ -1,4 +1,4 @@
-const requestLogger = (request, response, next) => {
+module.exports = (request, response, next) => {
   console.log('\n********************************')
   console.log('Method:', request.method)
   console.log('Path:  ', request.path)
@@ -6,5 +6,3 @@ const requestLogger = (request, response, next) => {
   console.log('---')
   next()
 }
-
-module.exports = requestLogger
