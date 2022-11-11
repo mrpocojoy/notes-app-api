@@ -1,6 +1,6 @@
 // 400 - BAD CLIENT REQUEST
-module.exports = (error, request, response, next) => {
-  console.error("Error message:")
+module.exports = (error, request, response) => {
+  console.error('Error message:')
   console.error(error.message || error)
 
   if (error.name === 'CastError')

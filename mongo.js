@@ -5,7 +5,7 @@ module.exports = () => {
 
   console.log(`Connecting MongoDB @${mongoURL}`)
   mongoose.connect(mongoURL)
-    .then((result) => console.log('Connected to MongoDB'))
+    .then(() => console.log('Connected to MongoDB'))
     .catch((error) => console.log('Error connecting to MongoDB:', error.message))
 
   process.on('uncaughtException', () => {
