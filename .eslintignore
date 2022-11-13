@@ -1,8 +1,0 @@
-# production
-static
-build
-static/build
-
-
-# dependencies
-node_modules

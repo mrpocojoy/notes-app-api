@@ -1,7 +1,5 @@
-const logger = require('./utils/logger')
+const logger = require('./logger')
 const mongoose = require('mongoose')
-// const mongoURL = process.env.MONGODB_URI
-
 
 const connect = (mongoURL) => {
   console.log(`Connecting MongoDB @${mongoURL}`)

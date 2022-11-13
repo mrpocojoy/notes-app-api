@@ -6,7 +6,7 @@ const { SENTRY_DSN } = require('./utils/config')
 const sentry = require('./utils/sentry')
 
 const { MONGODB_URI } = require('./utils/config')
-const database = require('./database.js')
+const database = require('./utils/database.js')
 const middleware = require('./utils/middleware')
 
 const { notesRouter } = require('./controllers/notes')
@@ -30,7 +30,7 @@ app.use(express.json())
 
 
 /*  Sentry initialization  */
-sentry.start(app, SENTRY_DSN)
+sentry.start(app, SENTRY_DSN)   //TODO: Review Sentry, it might have issues
 
 
 /*  Database connection  */

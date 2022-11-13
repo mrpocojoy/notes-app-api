@@ -6,6 +6,8 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
+    "build": "rm -rf static/build && cd ../frontend && rm -rf build && npm run build && cp -R build ../backend/static",
+    "deploy": "",
     "lint": "eslint .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -23,5 +25,53 @@
   "devDependencies": {
     "eslint": "8.27.0",
     "nodemon": "2.0.20"
+  },
+  "eslintIgnore": [
+    "node_modules",
+    "build"
+  ],
+  "eslintConfig": {
+    "extends": "eslint:recommended",
+    "overrides": [],
+    "env": {
+      "browser": true,
+      "node": true,
+      "commonjs": true,
+      "es2021": true
+    },
+    "parserOptions": {
+      "ecmaVersion": "latest"
+    },
+    "rules": {
+      "indent": [
+        "error",
+        2
+      ],
+      "linebreak-style": [
+        "error",
+        "unix"
+      ],
+      "quotes": [
+        "error",
+        "single"
+      ],
+      "semi": [
+        "error",
+        "never"
+      ],
+      "eqeqeq": "error",
+      "object-curly-spacing": [
+        "error",
+        "always"
+      ],
+      "arrow-spacing": [
+        "error",
+        {
+          "before": true,
+          "after": true
+        }
+      ],
+      "no-console": 0
+    }
   }
 }
